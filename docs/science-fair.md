@@ -1,8 +1,8 @@
 # Science Fair
 
-**Deadline for group self-assignment:** YYYY-MM-DD\
-**Deadline for topic selection:** YYYY-MM-DD\
-**Date of science fair:** YYYY-MM-DD
+**Deadline for group self-assignment:** 2025-10-27\
+**Deadline for topic selection:** 2025-11-10\
+**Date of science fair:** 2025-11-17
 
 For IN4120 students the course will end the semester with a science fair. Participation in the science fair is mandatory for IN4120 students, and distinguishes IN4120 from IN3120. You don't get a grade but will have to participate and pass to be allowed to take the final exam.
 
