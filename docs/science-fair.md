@@ -22,6 +22,6 @@ Your chosen topic should be somehow relevant to the course. Examples include con
 * Extend the precode in a fun, interesting or useful way! E.g., make selected in-memory index structures disk-backed, or add nifty features!
 * Pick a topic that links something search-related to the planned topic of your master's thesis!
 
-You can choose to present in either Norwegian or English, whatever you're the most comfortable with. Mixing languages (e.g., slides in English but presenting in Norwegian) would work, too. And if you, for whatever reason, cannot present in person or on the scheduled date, we can almost certainly accomodate for that somehow.
+You can choose to present in either Norwegian or English, whatever you're the most comfortable with. Mixing languages (e.g., slides in English but presenting in Norwegian) would work, too. And if you, for whatever reason, cannot present in person or on the scheduled date, we can almost certainly accommodate for that somehow.
 
 Lastly, note that the science fair is a very low-key and informal event. No grade, no judgment. Never has a chosen topic not been approved by me, and as long as you participate you'll pass. Don't take it too seriously, you're not defending a PhD thesis. Relax, have fun, enjoy the ride, and learn something new. 🙂
