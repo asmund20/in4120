@@ -21,7 +21,7 @@ class TriePacker:
     contiguous byte array would not happen from an unpacked trie, but rather from a stream of (externally)
     sorted strings where the stream of strings would be sorted lexicographically except for that if string
     A is a prefix of string B then string B (the longest of the two) would appear before string A (the
-    shortest of the two.)
+    shortest of the two.) See, e.g., https://burntsushi.net/transducers/ for inspiration.
 
     The current implementation supports optional meta data associated with nodes, as long as these
     are positive integers. This could be extended to support more types (e.g., strings or floats) with
