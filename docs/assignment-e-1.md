@@ -1,6 +1,6 @@
 # Assignment E-1
 
-**Deadline:** YYYY-MM-DD
+**Deadline:** 2025-11-03
 
 ## Task
 
