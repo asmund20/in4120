@@ -1,6 +1,6 @@
 # Assignment B-1
 
-**Deadline:** YYYY-MM-DD
+**Deadline:** 2025-09-22
 
 ## Task
 
