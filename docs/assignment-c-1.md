@@ -1,6 +1,6 @@
 # Assignment C-1
 
-**Deadline:** YYYY-MM-DD
+**Deadline:** 2025-10-06
 
 ## Task
 
