@@ -2,7 +2,7 @@
 
 Welcome to this semester's installment of IN3120/IN4120! Some administrivia:
 
-* I (aleksaoh) will be your Professor, and the one that lectures unless otherwise noted. There will be one Teaching Assistant (TA) this semester: Lilu Zhan (liluz).
+* I (aleksaoh) will be your Professor, and the one that lectures unless otherwise noted. There will be two Teaching Assistants (TA) this semester: Lilu Zhan (liluz) and Sindre Soltvedt Bjørndal-Riis (sindrsbj).
 
 * There is a [semester home page](https://www.uio.no/studier/emner/matnat/ifi/IN3120/h25/index.html). There you'll find a preliminary lecture plan, links to recordings of lectures, information about the final exam, and more.
 
