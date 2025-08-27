@@ -7,9 +7,10 @@ import itertools
 from abc import ABC, abstractmethod
 from collections import Counter
 from typing import Iterable, Iterator, List, Tuple
-from .dictionary import InMemoryDictionary
+
 from .analyzer import Analyzer
 from .corpus import Corpus
+from .dictionary import InMemoryDictionary
 from .posting import Posting
 from .postinglist import CompressedInMemoryPostingList, InMemoryPostingList, PostingList
 
@@ -80,7 +81,13 @@ class InMemoryInvertedIndex(InvertedIndex):
     compression is currently not supported.
     """
 
-    def __init__(self, corpus: Corpus, fields: Iterable[str], analyzer: Analyzer, compressed: bool = False):
+    def __init__(
+        self,
+        corpus: Corpus,
+        fields: Iterable[str],
+        analyzer: Analyzer,
+        compressed: bool = False,
+    ):
         self._corpus = corpus
         self._analyzer = analyzer
         self._posting_lists: List[PostingList] = []
@@ -88,7 +95,9 @@ class InMemoryInvertedIndex(InvertedIndex):
         self._build_index(fields, compressed)
 
     def __repr__(self):
-        return str({term: self._posting_lists[term_id] for term, term_id in self._dictionary})
+        return str(
+            {term: self._posting_lists[term_id] for term, term_id in self._dictionary}
+        )
 
     def _build_index(self, fields: Iterable[str], compressed: bool) -> None:
         """
@@ -108,7 +117,9 @@ class InMemoryInvertedIndex(InvertedIndex):
         ranking. See https://nlp.stanford.edu/IR-book/html/htmledition/positional-indexes-1.html for
         further details.
         """
-        raise NotImplementedError("You need to implement this as part of the obligatory assignment.")
+        raise NotImplementedError(
+            "You need to implement this as part of the obligatory assignment."
+        )
 
     def _add_to_dictionary(self, term: str) -> int:
         """
@@ -118,13 +129,17 @@ class InMemoryInvertedIndex(InvertedIndex):
         # Assign the term an identifier, if needed. First come, first serve.
         return self._dictionary.add_if_absent(term)
 
-    def _append_to_posting_list(self, term_id: int, document_id: int, term_frequency: int, compressed: bool) -> None:
+    def _append_to_posting_list(
+        self, term_id: int, document_id: int, term_frequency: int, compressed: bool
+    ) -> None:
         """
         Appends a new posting to the right posting list. The posting lists
         must be kept sorted so that we can efficiently traverse and
         merge them when querying the inverted index.
         """
-        raise NotImplementedError("You need to implement this as part of the obligatory assignment.")
+        self._posting_lists[term_id].append_posting(
+            posting=Posting(document_id, term_frequency)
+        )
 
     def _finalize_index(self):
         """
@@ -132,7 +147,7 @@ class InMemoryInvertedIndex(InvertedIndex):
         implementations that need it with the chance to tie up any loose ends,
         if needed.
         """
-        raise NotImplementedError("You need to implement this as part of the obligatory assignment.")
+        pass
 
     def get_terms(self, buffer: str) -> Iterator[str]:
         # In a serious large-scale application there could be field- and language-specific
@@ -146,10 +161,17 @@ class InMemoryInvertedIndex(InvertedIndex):
         return (s for s, _ in self._dictionary)
 
     def get_postings_iterator(self, term: str) -> Iterator[Posting]:
-        raise NotImplementedError("You need to implement this as part of the obligatory assignment.")
+        """
+        Function that returns an iterator over the postings for a term,
+        a posting consists of a document ID and term frequency.
+        """
+        return self._posting_lists[self._dictionary.get_term_id(term)].get_iterator()
 
     def get_document_frequency(self, term: str) -> int:
-        raise NotImplementedError("You need to implement this as part of the obligatory assignment.")
+        """
+        Function that returns the number of documents a term appears in.
+        """
+        return self._posting_lists[self._dictionary.get_term_id(term)].get_length()
 
 
 class DummyInMemoryInvertedIndex(InMemoryInvertedIndex):
@@ -165,9 +187,16 @@ class DummyInMemoryInvertedIndex(InMemoryInvertedIndex):
         super().__init__(corpus, fields, analyzer, False)
 
     def __repr__(self):
-        return str({term: self._document_frequencies[term_id] for term, term_id in self._dictionary})
+        return str(
+            {
+                term: self._document_frequencies[term_id]
+                for term, term_id in self._dictionary
+            }
+        )
 
-    def _append_to_posting_list(self, term_id: int, document_id: int, term_frequency: int, compressed: bool) -> None:
+    def _append_to_posting_list(
+        self, term_id: int, document_id: int, term_frequency: int, compressed: bool
+    ) -> None:
         self._document_frequencies[term_id] += 1
 
     def _finalize_index(self):
@@ -192,7 +221,9 @@ class AccessLoggedInvertedIndex(InvertedIndex):
         that have been accessed. Facilitates testing.
         """
 
-        def __init__(self, term: str, accesses: List[Tuple[str, int]], wrapped: Iterator[Posting]):
+        def __init__(
+            self, term: str, accesses: List[Tuple[str, int]], wrapped: Iterator[Posting]
+        ):
             self._term = term
             self._accesses = accesses
             self._wrapped = wrapped
@@ -213,7 +244,9 @@ class AccessLoggedInvertedIndex(InvertedIndex):
         return self._wrapped.get_indexed_terms()
 
     def get_postings_iterator(self, term: str) -> Iterator[Posting]:
-        return self.AccessLoggedIterator(term, self._accesses, self._wrapped.get_postings_iterator(term))
+        return self.AccessLoggedIterator(
+            term, self._accesses, self._wrapped.get_postings_iterator(term)
+        )
 
     def get_document_frequency(self, term: str) -> int:
         return self._wrapped.get_document_frequency(term)
