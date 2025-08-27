@@ -1,7 +1,9 @@
 # pylint: disable=missing-module-docstring
 
 from typing import Iterator
+
 from .posting import Posting
+from .postinglist import InMemoryPostingList
 
 
 class PostingsMerger:
@@ -47,7 +49,9 @@ class PostingsMerger:
     """
 
     @staticmethod
-    def intersection(iter1: Iterator[Posting], iter2: Iterator[Posting]) -> Iterator[Posting]:
+    def intersection(
+        iter1: Iterator[Posting], iter2: Iterator[Posting]
+    ) -> Iterator[Posting]:
         """
         A generator that yields a simple AND(A, B) of two posting
         lists A and B, given iterators over these.
@@ -61,7 +65,23 @@ class PostingsMerger:
         All posting lists are assumed sorted in increasing order according
         to the document identifiers.
         """
-        raise NotImplementedError("You need to implement this as part of the obligatory assignment.")
+        v1 = next(iter1)
+        v2 = next(iter2)
+        newPostingList = InMemoryPostingList()
+
+        while v1 and v2:
+            if v1.document_id < v2.document_id:
+                v1 = next(iter1)
+                continue
+            if v2.document_id < v1.document_id:
+                v2 = next(iter2)
+                continue
+
+            newPostingList.append_posting(v1)
+            v1 = next(iter1)
+            v2 = next(iter2)
+
+        return newPostingList.get_iterator()
 
     @staticmethod
     def union(iter1: Iterator[Posting], iter2: Iterator[Posting]) -> Iterator[Posting]:
@@ -78,10 +98,39 @@ class PostingsMerger:
         All posting lists are assumed sorted in increasing order according
         to the document identifiers.
         """
-        raise NotImplementedError("You need to implement this as part of the obligatory assignment.")
+        v1 = next(iter1)
+        v2 = next(iter2)
+        newPostingList = InMemoryPostingList()
+
+        while v1 and v2:
+            if v1.document_id < v2.document_id:
+                newPostingList.append_posting(v1)
+                v1 = next(iter1)
+                continue
+
+            if v2.document_id < v1.document_id:
+                newPostingList.append_posting(v2)
+                v2 = next(iter2)
+                continue
+
+            newPostingList.append_posting(v1)
+            v1 = next(iter1)
+            v2 = next(iter2)
+
+        while v1:
+            newPostingList.append_posting(v1)
+            v1 = next(iter1)
+
+        while v2:
+            newPostingList.append_posting(v2)
+            v2 = next(iter2)
+
+        return newPostingList.get_iterator()
 
     @staticmethod
-    def difference(iter1: Iterator[Posting], iter2: Iterator[Posting]) -> Iterator[Posting]:
+    def difference(
+        iter1: Iterator[Posting], iter2: Iterator[Posting]
+    ) -> Iterator[Posting]:
         """
         A generator that yields a simple ANDNOT(A, B) of two posting
         lists A and B, given iterators over these.
@@ -95,4 +144,24 @@ class PostingsMerger:
         All posting lists are assumed sorted in increasing order according
         to the document identifiers.
         """
-        raise NotImplementedError("You need to implement this as part of the obligatory assignment.")
+        v1 = next(iter1)
+        v2 = next(iter2)
+        newPostingList = InMemoryPostingList()
+
+        while v1 and v2:
+            if v2.document_id < v1.document_id:
+                v2 = next(iter2)
+                continue
+            if v1.document_id < v2.document_id:
+                newPostingList.append_posting(v1)
+                v1 = next(iter1)
+                continue
+
+            v1 = next(iter1)
+            v2 = next(iter2)
+
+        while v1:
+            newPostingList.append_posting(v1)
+            v1 = next(v1)
+
+        return newPostingList.get_iterator()
