@@ -65,21 +65,21 @@ class PostingsMerger:
         All posting lists are assumed sorted in increasing order according
         to the document identifiers.
         """
-        v1 = next(iter1)
-        v2 = next(iter2)
+        v1 = next(iter1, None)
+        v2 = next(iter2, None)
         newPostingList = InMemoryPostingList()
 
         while v1 and v2:
             if v1.document_id < v2.document_id:
-                v1 = next(iter1)
+                v1 = next(iter1, None)
                 continue
             if v2.document_id < v1.document_id:
-                v2 = next(iter2)
+                v2 = next(iter2, None)
                 continue
 
             newPostingList.append_posting(v1)
-            v1 = next(iter1)
-            v2 = next(iter2)
+            v1 = next(iter1, None)
+            v2 = next(iter2, None)
 
         return newPostingList.get_iterator()
 
@@ -98,32 +98,32 @@ class PostingsMerger:
         All posting lists are assumed sorted in increasing order according
         to the document identifiers.
         """
-        v1 = next(iter1)
-        v2 = next(iter2)
+        v1 = next(iter1, None)
+        v2 = next(iter2, None)
         newPostingList = InMemoryPostingList()
 
         while v1 and v2:
             if v1.document_id < v2.document_id:
                 newPostingList.append_posting(v1)
-                v1 = next(iter1)
+                v1 = next(iter1, None)
                 continue
 
             if v2.document_id < v1.document_id:
                 newPostingList.append_posting(v2)
-                v2 = next(iter2)
+                v2 = next(iter2, None)
                 continue
 
             newPostingList.append_posting(v1)
-            v1 = next(iter1)
-            v2 = next(iter2)
+            v1 = next(iter1, None)
+            v2 = next(iter2, None)
 
         while v1:
             newPostingList.append_posting(v1)
-            v1 = next(iter1)
+            v1 = next(iter1, None)
 
         while v2:
             newPostingList.append_posting(v2)
-            v2 = next(iter2)
+            v2 = next(iter2, None)
 
         return newPostingList.get_iterator()
 
@@ -144,24 +144,24 @@ class PostingsMerger:
         All posting lists are assumed sorted in increasing order according
         to the document identifiers.
         """
-        v1 = next(iter1)
-        v2 = next(iter2)
+        v1 = next(iter1, None)
+        v2 = next(iter2, None)
         newPostingList = InMemoryPostingList()
 
         while v1 and v2:
             if v2.document_id < v1.document_id:
-                v2 = next(iter2)
+                v2 = next(iter2, None)
                 continue
             if v1.document_id < v2.document_id:
                 newPostingList.append_posting(v1)
-                v1 = next(iter1)
+                v1 = next(iter1, None)
                 continue
 
-            v1 = next(iter1)
-            v2 = next(iter2)
+            v1 = next(iter1, None)
+            v2 = next(iter2, None)
 
         while v1:
             newPostingList.append_posting(v1)
-            v1 = next(v1)
+            v1 = next(iter1, None)
 
         return newPostingList.get_iterator()
