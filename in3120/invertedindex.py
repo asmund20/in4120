@@ -117,9 +117,22 @@ class InMemoryInvertedIndex(InvertedIndex):
         ranking. See https://nlp.stanford.edu/IR-book/html/htmledition/positional-indexes-1.html for
         further details.
         """
-        raise NotImplementedError(
-            "You need to implement this as part of the obligatory assignment."
-        )
+        # self._dictionary
+        # self._posting_lists
+        # self._corpus
+        # self._analyzer
+
+        for doc in iter(self._corpus):
+            buffer = ""
+            for field in doc.get_field_names():
+                buffer += str(doc.get_field(field), "")
+            tokens = self._analyzer.terms(buffer)
+
+            for term, _ in tokens:
+                termId = self._add_to_dictionary(term)
+                self._append_to_posting_list(
+                    termId,
+                )
 
     def _add_to_dictionary(self, term: str) -> int:
         """
