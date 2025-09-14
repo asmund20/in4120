@@ -124,14 +124,22 @@ class InMemoryInvertedIndex(InvertedIndex):
 
         for doc in iter(self._corpus):
             buffer = ""
-            for field in doc.get_field_names():
-                buffer += str(doc.get_field(field), "")
+            for field in fields:
+                buffer += doc.get_field(field, "") + " "
             tokens = self._analyzer.terms(buffer)
+
+            termFrequency = dict()
 
             for term, _ in tokens:
                 termId = self._add_to_dictionary(term)
+                if termId in termFrequency:
+                    termFrequency[termId] += 1
+                else:
+                    termFrequency[termId] = 1
+
+            for termId, frequency in termFrequency.items():
                 self._append_to_posting_list(
-                    termId,
+                    termId, doc.get_document_id(), frequency, compressed
                 )
 
     def _add_to_dictionary(self, term: str) -> int:
@@ -150,6 +158,9 @@ class InMemoryInvertedIndex(InvertedIndex):
         must be kept sorted so that we can efficiently traverse and
         merge them when querying the inverted index.
         """
+        if len(self._posting_lists) <= term_id:
+            self._posting_lists.append(InMemoryPostingList())
+
         self._posting_lists[term_id].append_posting(
             posting=Posting(document_id, term_frequency)
         )
@@ -178,13 +189,19 @@ class InMemoryInvertedIndex(InvertedIndex):
         Function that returns an iterator over the postings for a term,
         a posting consists of a document ID and term frequency.
         """
-        return self._posting_lists[self._dictionary.get_term_id(term)].get_iterator()
+        if term_id := self._dictionary.get_term_id(term):
+            return self._posting_lists[term_id].get_iterator()
+        return iter([])
 
     def get_document_frequency(self, term: str) -> int:
         """
         Function that returns the number of documents a term appears in.
         """
-        return self._posting_lists[self._dictionary.get_term_id(term)].get_length()
+        return (
+            self._posting_lists[termId].get_length()
+            if (termId := self._dictionary.get_term_id(term))
+            else 0
+        )
 
 
 class DummyInMemoryInvertedIndex(InMemoryInvertedIndex):

@@ -3,7 +3,6 @@
 from typing import Iterator
 
 from .posting import Posting
-from .postinglist import InMemoryPostingList
 
 
 class PostingsMerger:
@@ -67,7 +66,6 @@ class PostingsMerger:
         """
         v1 = next(iter1, None)
         v2 = next(iter2, None)
-        newPostingList = InMemoryPostingList()
 
         while v1 and v2:
             if v1.document_id < v2.document_id:
@@ -77,11 +75,9 @@ class PostingsMerger:
                 v2 = next(iter2, None)
                 continue
 
-            newPostingList.append_posting(v1)
+            yield v1
             v1 = next(iter1, None)
             v2 = next(iter2, None)
-
-        return newPostingList.get_iterator()
 
     @staticmethod
     def union(iter1: Iterator[Posting], iter2: Iterator[Posting]) -> Iterator[Posting]:
@@ -100,32 +96,29 @@ class PostingsMerger:
         """
         v1 = next(iter1, None)
         v2 = next(iter2, None)
-        newPostingList = InMemoryPostingList()
 
         while v1 and v2:
             if v1.document_id < v2.document_id:
-                newPostingList.append_posting(v1)
+                yield v1
                 v1 = next(iter1, None)
                 continue
 
             if v2.document_id < v1.document_id:
-                newPostingList.append_posting(v2)
+                yield v2
                 v2 = next(iter2, None)
                 continue
 
-            newPostingList.append_posting(v1)
+            yield v1
             v1 = next(iter1, None)
             v2 = next(iter2, None)
 
         while v1:
-            newPostingList.append_posting(v1)
+            yield v1
             v1 = next(iter1, None)
 
         while v2:
-            newPostingList.append_posting(v2)
+            yield v2
             v2 = next(iter2, None)
-
-        return newPostingList.get_iterator()
 
     @staticmethod
     def difference(
@@ -146,14 +139,13 @@ class PostingsMerger:
         """
         v1 = next(iter1, None)
         v2 = next(iter2, None)
-        newPostingList = InMemoryPostingList()
 
         while v1 and v2:
             if v2.document_id < v1.document_id:
                 v2 = next(iter2, None)
                 continue
             if v1.document_id < v2.document_id:
-                newPostingList.append_posting(v1)
+                yield v1
                 v1 = next(iter1, None)
                 continue
 
@@ -161,7 +153,5 @@ class PostingsMerger:
             v2 = next(iter2, None)
 
         while v1:
-            newPostingList.append_posting(v1)
+            yield v1
             v1 = next(iter1, None)
-
-        return newPostingList.get_iterator()
