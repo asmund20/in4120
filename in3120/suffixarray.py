@@ -5,7 +5,7 @@
 from bisect import bisect_left
 from collections import Counter
 from dataclasses import dataclass
-from itertools import takewhile
+from itertools import islice, takewhile
 from typing import Iterable, Iterator, List, Tuple
 
 from .analyzer import Analyzer
@@ -66,7 +66,7 @@ class SuffixArray:
         for haystack_index, doc in enumerate(iter(self._corpus)):
             buffer = ""
             for field in fields:
-                buffer += str(doc.get_field(field), "")
+                buffer += str(doc.get_field(field, ""))
             tokens = self._analyzer.terms(buffer)
 
             self._haystack.append((doc.document_id, buffer))
@@ -75,7 +75,7 @@ class SuffixArray:
                 self._suffixes.insert(
                     bisect_left(
                         self._suffixes,
-                        (haystack_index, span[0]),
+                        self._get_suffix((haystack_index, span[0])),
                         key=lambda x: self._get_suffix(x),
                     ),
                     (haystack_index, span[0]),
@@ -120,7 +120,8 @@ class SuffixArray:
 
         c = Counter(
             takewhile(
-                lambda x: self._get_suffix(x).startswith(query), self._suffix[mid:]
+                lambda x: self._get_suffix(x).startswith(query),
+                islice(self._suffixes, mid, None),
             )
         )
 
