@@ -119,10 +119,15 @@ class SuffixArray:
                 break
 
         c = Counter(
-            takewhile(
-                lambda x: self._get_suffix(x).startswith(query),
-                islice(self._suffixes, mid, None),
+            map(
+                lambda x: self._corpus.get_document(x[0]),
+                takewhile(
+                    lambda x: self._get_suffix(x).startswith(query),
+                    islice(self._suffixes, mid, None),
+                ),
             )
         )
 
-        return c.most_common(options.hit_count if options else None)
+        most_common = c.most_common(options.hit_count if options else None)
+        for document, count in most_common:
+            yield self.Result(document, count)
