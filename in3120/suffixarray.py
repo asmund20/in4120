@@ -146,6 +146,7 @@ class SuffixArray:
             )
         )
 
-        most_common = c.most_common(options.hit_count if options else None)
-        for document, count in most_common:
-            yield self.Result(document, count)
+        yield from map(
+            lambda x: self.Result(x[0], x[1]),
+            c.most_common(options.hit_count if options else None),
+        )
