@@ -64,12 +64,20 @@ class SuffixArray:
         # sort the suffix array based on the string.
 
         for haystack_index, doc in enumerate(iter(self._corpus)):
-            buffer = ""
-            for field in fields:
-                buffer += str(doc.get_field(field, ""))
+            # buffer = ""
+            # for field in fields:
+            # buffer += str(doc.get_field(field, ""))
+
+            buffer = "$".join(
+                map(lambda x: self._analyzer.join(doc.get_field(x, "")), fields)
+            )
+
+            # buffer = self._analyzer.join(buffer)
+            self._haystack.append((doc.document_id, buffer))
+
             tokens = self._analyzer.terms(buffer)
 
-            self._haystack.append((doc.document_id, buffer))
+            tokens = list(tokens)
 
             for _, span in tokens:
                 self._suffixes.insert(
@@ -100,23 +108,33 @@ class SuffixArray:
         The matching documents are ranked according to how many times the query substring occurs in the document,
         and only the "best" matches are yielded back to the client. Ties are resolved arbitrarily.
         """
-        # Tokenize
-        # Binary search
-        # Scan both ways until it does not match.
-        # tokens = self._analyzer.terms(query)
+        query = self._analyzer.join(query)
+
+        if not query:
+            return iter([])
+
         left = 0
         right = len(self._suffixes) - 1
 
+        def match(suffix_index: int) -> bool:
+            return self._get_suffix(self._suffixes[suffix_index]).startswith(query)
+
         while left <= right:
             mid = left + (right - left) // 2
+
+            # A match might be anywhere in the list of matches, so this iterates
+            # backwards through the matches until the leftmost match
+            if match(mid):
+                while mid >= left and match(mid - 1):
+                    mid -= 1
+
+                break
+
             if self._get_suffix(self._suffixes[mid]) < query:
                 left = mid + 1
 
             elif self._get_suffix(self._suffixes[mid]) > query:
                 right = mid - 1
-
-            else:
-                break
 
         c = Counter(
             map(
