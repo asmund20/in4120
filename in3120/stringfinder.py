@@ -52,23 +52,6 @@ class StringFinder:
         self._trie = trie  # The set of strings we want to detect in the scanned buffer.
         self._analyzer = analyzer  # The same that was used when the trie was built.
 
-    def _in_dictionary(self, buffer: str, begin: int) -> State | None:
-        """
-        Scans the trie tree for a term.
-        Returns the scan state if there is a match, else None.
-        """
-        state = self.State(self._trie, begin, "")
-
-        for c in buffer:
-            if next_trie := state.node.child(c):
-                state.node = next_trie
-                state.match += c
-            else:
-                return None
-
-        # print(f"Found match for term '{term}': {state}")
-        return state if state.node.is_final() else None
-
     def scan(self, buffer: str) -> Iterator[Result]:
         """
         Scans the given buffer once and finds all dictionary entries in the trie that are also present in the
@@ -78,15 +61,34 @@ class StringFinder:
         support for leftmost-longest matching (instead of reporting all matches), and more.
         """
 
-        buffer = self._analyzer.join(buffer)
-        spans = self._analyzer.spans(buffer)
+        terms = self._analyzer.terms(buffer)
+        states: List[self.State] = list()
 
-        for begin, _ in spans:
-            if state := self._in_dictionary(buffer, begin):
-                yield self.Result(
-                    state.match,
-                    state.node.get_meta(),
-                    buffer[begin : begin + len(state.match)],
-                    begin,
-                    begin + len(state.match),
-                )
+        for term, (begin, end) in terms:
+            states.append(self.State(self._trie, begin, ""))
+
+            for c in term:
+                new_states: List[self.State] = list()
+                for state in states:
+                    if next_trie := state.node.child(c):
+                        state.node = next_trie
+                        state.match += c
+                        new_states.append(state)
+                states = new_states
+
+            new_states: List[self.State] = list()
+            for state in states:
+                if state.node.is_final():
+                    yield self.Result(
+                        state.match,
+                        state.node.get_meta(),
+                        " ".join(buffer[state.begin : end].split()),
+                        state.begin,
+                        end,
+                    )
+                if next_trie := state.node.child(" "):
+                    state.node = next_trie
+                    state.match += " "
+                    new_states.append(state)
+
+            states = new_states

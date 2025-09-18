@@ -16,4 +16,6 @@ finder1 = in3120.StringFinder(trie1, analyzer)
 finder2 = in3120.StringFinder(trie2, analyzer)
 buffer = "The injury was located close to the medulla oblongata."
 results = list(finder1.scan(buffer))
-print(f"Expected exactly one result, got: {len(results)}")
+print(
+    f"Expected exactly one result, got: {len(results)}. The result there is: {results[0] if results else ''}"
+)
