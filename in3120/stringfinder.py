@@ -60,7 +60,6 @@ class StringFinder:
         In a serious application we'd add more lookup/evaluation features, e.g., support for prefix matching,
         support for leftmost-longest matching (instead of reporting all matches), and more.
         """
-
         terms = self._analyzer.terms(buffer)
         states: List[self.State] = list()
 
@@ -86,9 +85,14 @@ class StringFinder:
                         state.begin,
                         end,
                     )
-                if next_trie := state.node.child(" "):
+                if (
+                    end < len(buffer)
+                    and buffer[end] == " "
+                    and (next_trie := state.node.child(" "))
+                ):
                     state.node = next_trie
                     state.match += " "
                     new_states.append(state)
 
-            states = new_states
+            if end < len(buffer) and buffer[end] == " ":
+                states = new_states
