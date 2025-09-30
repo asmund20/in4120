@@ -133,10 +133,15 @@ class SimpleSearchEngine:
             doc_id, frontier = self._frontier(cursors, alive)
 
             if len(frontier) >= n:
-                # TODO: Use the ranker here.
-                sieve.sift(len(frontier), doc_id)
+                ranker.reset(doc_id)
+                for cursor_index in frontier:
+                    cursor = cursors[cursor_index]
+                    ranker.update(cursor.term, cursor.multiplicity, cursor.current)
 
-            self._advance(cursors, alive)
+                score = ranker.evaluate()
+                sieve.sift(score, doc_id)
+
+            self._advance(cursors, frontier)
             alive = self._alive(cursors)
 
         for score, doc_id in sieve.winners():
