@@ -64,20 +64,21 @@ class PostingsMerger:
         All posting lists are assumed sorted in increasing order according
         to the document identifiers.
         """
-        v1 = next(iter1, None)
-        v2 = next(iter2, None)
+        current1 = next(iter1, None)
+        current2 = next(iter2, None)
 
-        while v1 and v2:
-            if v1.document_id < v2.document_id:
-                v1 = next(iter1, None)
-                continue
-            if v2.document_id < v1.document_id:
-                v2 = next(iter2, None)
-                continue
+        # We can abort as soon as we exhaust one of the posting lists.
+        while current1 and current2:
 
-            yield v1
-            v1 = next(iter1, None)
-            v2 = next(iter2, None)
+            # Increment the smallest one. Yield if we have a match.
+            if current1.document_id == current2.document_id:
+                yield current1
+                current1 = next(iter1, None)
+                current2 = next(iter2, None)
+            elif current1.document_id < current2.document_id:
+                current1 = next(iter1, None)
+            else:
+                current2 = next(iter2, None)
 
     @staticmethod
     def union(iter1: Iterator[Posting], iter2: Iterator[Posting]) -> Iterator[Posting]:
@@ -94,31 +95,29 @@ class PostingsMerger:
         All posting lists are assumed sorted in increasing order according
         to the document identifiers.
         """
-        v1 = next(iter1, None)
-        v2 = next(iter2, None)
+        current1 = next(iter1, None)
+        current2 = next(iter2, None)
 
-        while v1 and v2:
-            if v1.document_id < v2.document_id:
-                yield v1
-                v1 = next(iter1, None)
-                continue
+        # First handle the case where neither posting list is exhausted.
+        while current1 and current2:
 
-            if v2.document_id < v1.document_id:
-                yield v2
-                v2 = next(iter2, None)
-                continue
+            # Yield the smallest one.
+            if current1.document_id == current2.document_id:
+                yield current1
+                current1 = next(iter1, None)
+                current2 = next(iter2, None)
+            elif current1.document_id < current2.document_id:
+                yield current1
+                current1 = next(iter1, None)
+            else:
+                yield current2
+                current2 = next(iter2, None)
 
-            yield v1
-            v1 = next(iter1, None)
-            v2 = next(iter2, None)
-
-        while v1:
-            yield v1
-            v1 = next(iter1, None)
-
-        while v2:
-            yield v2
-            v2 = next(iter2, None)
+        # We have exhausted at least one of the lists. Yield the remaining tail, if any.
+        current, tail = (current1, iter1) if current1 else (current2, iter2)
+        if current:
+            yield current
+            yield from tail
 
     @staticmethod
     def difference(
@@ -137,21 +136,21 @@ class PostingsMerger:
         All posting lists are assumed sorted in increasing order according
         to the document identifiers.
         """
-        v1 = next(iter1, None)
-        v2 = next(iter2, None)
+        current1 = next(iter1, None)
+        current2 = next(iter2, None)
 
-        while v1 and v2:
-            if v2.document_id < v1.document_id:
-                v2 = next(iter2, None)
-                continue
-            if v1.document_id < v2.document_id:
-                yield v1
-                v1 = next(iter1, None)
-                continue
+        # First handle the case where neither posting list is exhausted.
+        while current1 and current2:
+            if current1.document_id < current2.document_id:
+                yield current1
+                current1 = next(iter1, None)
+            elif current1.document_id > current2.document_id:
+                current2 = next(iter2, None)
+            else:
+                current1 = next(iter1, None)
+                current2 = next(iter2, None)
 
-            v1 = next(iter1, None)
-            v2 = next(iter2, None)
-
-        while v1:
-            yield v1
-            v1 = next(iter1, None)
+        # Yield the remaining elements in the first list, if any.
+        if current1:
+            yield current1
+            yield from iter1
