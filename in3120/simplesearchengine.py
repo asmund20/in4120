@@ -5,13 +5,14 @@
 
 from collections import Counter
 from dataclasses import dataclass
-from typing import Iterator, List, Tuple
-from .document import Document
-from .sieve import Sieve
-from .ranker import Ranker
+from typing import Iterator, List, Tuple, Set
+
 from .corpus import Corpus
-from .posting import Posting
+from .document import Document
 from .invertedindex import InvertedIndex
+from .posting import Posting
+from .ranker import Ranker
+from .sieve import Sieve
 
 
 class SimpleSearchEngine:
@@ -22,7 +23,7 @@ class SimpleSearchEngine:
     logically equivalent to the following predicate:
 
        (orange AND apple) OR (orange AND banana) OR (apple AND banana)
-       
+
     Note that N-of-M matching can be viewed as a type of "soft AND" evaluation, where the degree of match
     can be smoothly controlled to mimic either an OR evaluation (1-of-M), or an AND evaluation (M-of-M),
     or something in between.
@@ -63,20 +64,24 @@ class SimpleSearchEngine:
         self._corpus = corpus
         self._inverted_index = inverted_index
 
-    def _alive(self, cursors: List[Cursor]) -> List[int]:
+    def _alive(self, cursors: List[Cursor]) -> Set[int]:
         """
         Returns the subset of cursors (or, rather, their indices) that are still "alive",
         i.e., the subset of cursors having posting lists that have not yet been exhausted.
         """
-        raise NotImplementedError("You need to implement this as part of the obligatory assignment.")
+        return {i for i, cursor in enumerate(cursors) if cursor.current}
 
-    def _advance(self, cursors: List[Cursor], subset: List[int]) -> None:
+    def _advance(self, cursors: List[Cursor], subset: Set[int] | None = None) -> None:
         """"
         Advances the given subset of cursors.
         """
-        raise NotImplementedError("You need to implement this as part of the obligatory assignment.")
+        for i, cursor in enumerate(cursors):
+            if subset and i not in subset:
+                continue
 
-    def _frontier(self, cursors: List[Cursor], subset: List[int]) -> Tuple[int, List[int]]:
+            cursor.current = next(cursor.postings, None)
+
+    def _frontier(self, cursors: List[Cursor], subset: Set[int]) -> Tuple[int, Set[int]]:
         """
         Among the given subset of cursors, identifies the frontier document identifier
         and the cursors positioned at it.
@@ -85,7 +90,20 @@ class SimpleSearchEngine:
         the smallest document identifier. Since posting lists are sorted in ascending order,
         the frontier represents the "leftmost" cursors when scanning from left to right.
         """
-        raise NotImplementedError("You need to implement this as part of the obligatory assignment.")
+
+        min = float("inf")
+        frontier = set()
+
+        for i, cursor in enumerate(cursors):
+            if i not in subset:
+                continue
+            if cursor.current.document_id == min:
+                frontier.add(i)
+            elif cursor.current.document_id < min:
+                frontier = {i}
+                min = cursor.current.document_id
+
+        return min, frontier
 
     def evaluate(self, query: str, ranker: Ranker, options: Options | None = None) -> Iterator[Result]:
         """
@@ -95,4 +113,31 @@ class SimpleSearchEngine:
         The matching documents, if any, are ranked by the supplied ranker, and only the "best" matches are yielded
         back to the client.
         """
-        raise NotImplementedError("You need to implement this as part of the obligatory assignment.")
+
+        options = options if options else self.Options()
+
+        sieve = Sieve(options.hit_count)
+
+        terms = self._inverted_index.get_terms(query)
+        terms = Counter(terms).most_common()
+
+        n = max(1, min(len(terms), int(options.match_threshold * len(terms))))
+
+        cursors = [self.Cursor(term, multiplicity, None, self._inverted_index.get_postings_iterator(term))
+                   for term, multiplicity in terms]
+
+        self._advance(cursors)
+        alive = self._alive(cursors)
+
+        while alive:
+            doc_id, frontier = self._frontier(cursors, alive)
+
+            if len(frontier) >= n:
+                # TODO: Use the ranker here.
+                sieve.sift(len(frontier), doc_id)
+
+            self._advance(cursors, alive)
+            alive = self._alive(cursors)
+
+        for score, doc_id in sieve.winners():
+            yield self.Result(score, self._corpus.get_document(doc_id))
