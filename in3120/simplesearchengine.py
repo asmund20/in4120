@@ -71,7 +71,7 @@ class SimpleSearchEngine:
         raise NotImplementedError("You need to implement this as part of the obligatory assignment.")
 
     def _advance(self, cursors: List[Cursor], subset: List[int]) -> None:
-        """"
+        """
         Advances the given subset of cursors.
         """
         raise NotImplementedError("You need to implement this as part of the obligatory assignment.")
