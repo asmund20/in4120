@@ -1,11 +1,12 @@
 # pylint: disable=missing-module-docstring
 # pylint: disable=line-too-long
 
-from typing import Iterator, Tuple
 from collections import deque
 from itertools import islice
+from typing import Iterator, Tuple
+
+from .normalizer import DummyNormalizer, Normalizer
 from .tokenizer import Tokenizer
-from .normalizer import Normalizer, DummyNormalizer
 
 
 class ShingleGenerator(Tokenizer):
@@ -34,7 +35,18 @@ class ShingleGenerator(Tokenizer):
         self._width = width
 
     def spans(self, buffer: str) -> Iterator[Tuple[int, int]]:
-        raise NotImplementedError("You need to implement this as part of the obligatory assignment.")
+        start = 0
+
+        if not buffer:
+            return
+
+        if len(buffer) <= self._width:
+            yield 0, len(buffer)
+            return
+
+        while start + self._width <= len(buffer):
+            yield start, start + self._width
+            start += 1
 
 
 class WordShingleGenerator(Tokenizer):
@@ -56,7 +68,7 @@ class WordShingleGenerator(Tokenizer):
     with the added convenience of doing normalization as part of the tokenization process.
     """
 
-    def __init__(self, width: int, tokenizer: Tokenizer, normalizer: None |  Normalizer):
+    def __init__(self, width: int, tokenizer: Tokenizer, normalizer: None | Normalizer):
         assert width > 0
         self._width = width
         self._tokenizer = tokenizer

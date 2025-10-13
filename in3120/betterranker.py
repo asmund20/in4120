@@ -41,10 +41,18 @@ class BetterRanker(Ranker):
         self._options = options or self.Options()
 
     def reset(self, document_id: int) -> None:
-        raise NotImplementedError("You need to implement this as part of the obligatory assignment.")
+        self._document_id = document_id
+        self._score = 0.0
+
+    def _static_score(self) -> float:
+        return self._corpus.get_document(self._document_id).get_field(
+            self._options.static_field,
+            self._options.static_default,
+        )
 
     def update(self, term: str, multiplicity: int, posting: Posting) -> None:
-        raise NotImplementedError("You need to implement this as part of the obligatory assignment.")
+        assert self._document_id == posting.document_id
+        self._score += multiplicity * posting.term_frequency * math.log10(self._corpus.size() / self._inverted_index.get_document_frequency(term))
 
     def evaluate(self) -> float:
-        raise NotImplementedError("You need to implement this as part of the obligatory assignment.")
+        return self._options.static_weight * self._static_score() + self._options.dynamic_weight * self._score
