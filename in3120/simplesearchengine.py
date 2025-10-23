@@ -5,7 +5,7 @@
 
 from collections import Counter
 from dataclasses import dataclass
-from typing import Iterator, List, Tuple, Set
+from typing import Iterator, List, Set, Tuple
 
 from .corpus import Corpus
 from .document import Document
@@ -71,8 +71,8 @@ class SimpleSearchEngine:
         """
         return {i for i, cursor in enumerate(cursors) if cursor.current}
 
-    def _advance(self, cursors: List[Cursor], subset: Set[int] | None = None) -> None:
-        """"
+    def _advance(self, cursors: List[Cursor], subset: List[int]) -> None:
+        """
         Advances the given subset of cursors.
         """
         for i, cursor in enumerate(cursors):

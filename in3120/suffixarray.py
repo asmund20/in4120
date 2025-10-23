@@ -57,37 +57,16 @@ class SuffixArray:
         Builds a simple suffix array from the set of named fields in the document collection.
         The suffix array allows us to search across all named fields in one go.
         """
-        # For each document:
-        #   Join the fields to one string
-        #   self._analyzer.terms(docstring)
-        #   add to the suffix array
-        # sort the suffix array based on the string.
+        # We allow searching across multiple document fields simultaneously, so join the named fields
+        # to produce the haystack that we'll search for needles in. Avoid cross-field matches.
+        self._haystack = [(d.document_id, " \0 ".join(self._analyzer.join(d.get_field(f, "")) for f in fields)) for d in self._corpus]
 
-        for haystack_index, doc in enumerate(iter(self._corpus)):
-            # buffer = ""
-            # for field in fields:
-            # buffer += str(doc.get_field(field, ""))
-
-            buffer = "$".join(
-                map(lambda x: self._analyzer.join(doc.get_field(x, "")), fields)
-            )
-
-            # buffer = self._analyzer.join(buffer)
-            self._haystack.append((doc.document_id, buffer))
-
-            tokens = self._analyzer.terms(buffer)
-
-            tokens = list(tokens)
-
-            for _, span in tokens:
-                self._suffixes.insert(
-                    bisect_left(
-                        self._suffixes,
-                        self._get_suffix((haystack_index, span[0])),
-                        key=lambda x: self._get_suffix(x),
-                    ),
-                    (haystack_index, span[0]),
-                )
+        # We don't actually store all suffixes, instead we store (index, offset) pairs which allows us
+        # to generate the suffixes if/when we need them: The index identifies the document, and the
+        # offset identifies where in the document the substring starts. A naive suffix array generation
+        # is fine for now.
+        self._suffixes = [(index, begin) for index, (_, buffer) in enumerate(self._haystack) for begin, _ in self._analyzer.spans(buffer, False)]
+        self._suffixes.sort(key=self._get_suffix)
 
     def _get_suffix(self, pair: Tuple[int, int]) -> str:
         """
@@ -108,45 +87,33 @@ class SuffixArray:
         The matching documents are ranked according to how many times the query substring occurs in the document,
         and only the "best" matches are yielded back to the client. Ties are resolved arbitrarily.
         """
-        query = self._analyzer.join(query)
 
-        if not query:
-            return iter([])
+  # Default options apply unless specified.
+  options = options or self.Options()
 
-        left = 0
-        right = len(self._suffixes) - 1
+   # Search for the needle in the haystack, using built-in binary search. Define that the empty query matches
+   # nothing, not everything.
+   needle = self._analyzer.join(query or "")
+    if not needle:
+        return
+    where_start = bisect_left(self._suffixes, needle, key=self._get_suffix)
 
-        def match(suffix_index: int) -> bool:
-            return self._get_suffix(self._suffixes[suffix_index]).startswith(query)
+    # Helper predicate. Checks if the identified suffix starts with the needle. Since slicing implies copying,
+    # cap the length of the slice to the length of the needle. The starts-with relation then becomes the same
+    # as equality, which is quick to check.
+    def _is_match(i: int) -> bool:
+        j, offset = self._suffixes[i]
+        return self._haystack[j][1][offset:(offset + len(needle))] == needle
 
-        while left <= right:
-            mid = left + (right - left) // 2
+    # Suffixes sharing a prefix are consecutive in the suffix array. Scan ahead from the located index until
+    # we no longer get a match. We expect a low number of matches for typical queries, and we process all the
+    # matches below anyway. If we just wanted to count the number of matches without processing them, we
+    # could instead of a linear scan do another binary search to locate where the range ends.
+    matches = takewhile(_is_match, range(where_start, len(self._suffixes)))
 
-            # A match might be anywhere in the list of matches, so this iterates
-            # backwards through the matches until the leftmost match
-            if match(mid):
-                while mid >= left and match(mid - 1):
-                    mid -= 1
-
-                break
-
-            if self._get_suffix(self._suffixes[mid]) < query:
-                left = mid + 1
-
-            elif self._get_suffix(self._suffixes[mid]) > query:
-                right = mid - 1
-
-        c = Counter(
-            map(
-                lambda x: self._corpus.get_document(x[0]),
-                takewhile(
-                    lambda x: self._get_suffix(x).startswith(query),
-                    islice(self._suffixes, mid, None),
-                ),
-            )
-        )
-
-        yield from map(
-            lambda x: self.Result(x[0], x[1]),
-            c.most_common(options.hit_count if options else None),
-        )
+    # Deduplicate. A document in the haystack might contain multiple occurrences of the needle.
+    # Rank according to occurrence count, and emit in ranked order.
+    if matches:
+        pairs = (self._suffixes[i] for i in matches)
+        winners = Counter(i for i, _ in pairs).most_common(max(1, min(100, options.hit_count)))
+        yield from (self.Result(self._corpus[self._haystack[index][0]], count) for index, count in winners)
