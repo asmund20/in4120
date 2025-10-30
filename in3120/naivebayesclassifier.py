@@ -5,9 +5,11 @@ import math
 from collections import Counter
 from dataclasses import dataclass
 from typing import Dict, Iterable, Iterator
-from .dictionary import InMemoryDictionary
+
 from .analyzer import Analyzer
 from .corpus import Corpus
+from .dictionary import InMemoryDictionary
+from .document import Document
 
 
 class NaiveBayesClassifier:
@@ -34,6 +36,9 @@ class NaiveBayesClassifier:
         # Maps a category c to the logarithm of its prior probability, i.e., c maps to log(Pr(c)).
         self._priors: Dict[str, float] = {}
 
+        # Maps a categoy c and a term t to the number count of the term in category.
+        self._count: Dict[str, Dict[str, float]] = {}
+
         # Maps a category c and a term t to the logarithm of its category-conditioned posterior probability,
         # i.e., (c, t) maps to log(Pr(t | c)).
         self._posteriors: Dict[str, Dict[str, float]] = {}
@@ -46,25 +51,54 @@ class NaiveBayesClassifier:
         self._compute_vocabulary(training_set, fields)
         self._compute_posteriors(training_set, fields)
 
-    def _compute_priors(self, training_set) -> None:
+    def _compute_priors(self, training_set: Dict[str, Corpus]) -> None:
         """
         Estimates all prior probabilities (or, rather, log-probabilities) needed for
         the naive Bayes classifier.
         """
-        raise NotImplementedError("You need to implement this as part of the obligatory assignment.")
+        counts = {category: len(corpus) for category, corpus in training_set.items()}
+        NORMALIZATION_FACTOR = sum(counts.values())
+        probabilities = {category: docs_in_category / NORMALIZATION_FACTOR for category, docs_in_category in counts.items()}
+        self._priors = {category: math.log(prob)
+                        for category, prob in probabilities.items()}
 
-    def _compute_vocabulary(self, training_set, fields) -> None:
+    def _get_terms_in_corpus(self, corpus: Corpus, fields: Iterable[str]) -> Iterator[str]:
+        for document in iter(corpus):
+            for term in self._get_terms_in_document(document, fields):
+                yield term
+
+    def _get_terms_in_document(self, document: Document, fields: Iterable[str]) -> Iterator[str]:
+        for field in fields:
+            for term in self._get_terms(document.get_field(field, "")):
+                yield term
+
+    def _compute_vocabulary(self, training_set: Dict[str, Corpus], fields: Iterable[str]) -> None:
         """
         Builds up the overall vocabulary as seen in the training set.
         """
-        raise NotImplementedError("You need to implement this as part of the obligatory assignment.")
 
-    def _compute_posteriors(self, training_set, fields) -> None:
+        for corpus in training_set.values():
+            for term in self._get_terms_in_corpus(corpus, fields):
+                self._vocabulary.add_if_absent(term)
+
+    def _compute_count(self, training_set: Dict[str, Corpus], fields: Iterable[str]) -> None:
+        self._count = {category: {k: v for k, v in Counter(self._get_terms_in_corpus(corpus, fields)).most_common()}
+                       for category, corpus in training_set.items()}
+
+    def _compute_denominators(self, training_set: Dict[str, Corpus], fields: Iterable[str]) -> None:
+        self._denominators = {category: sum(terms.values()) + len(self._vocabulary) for category, terms in self._count.items()}
+
+    def _compute_posteriors(self, training_set: Dict[str, Corpus], fields: Iterable[str]) -> None:
         """
         Estimates all conditional probabilities (or, rather, log-probabilities) needed for
         the naive Bayes classifier.
         """
-        raise NotImplementedError("You need to implement this as part of the obligatory assignment.")
+        self._compute_count(training_set, fields)
+        self._compute_denominators(training_set, fields)
+        self._posteriors = {category:
+                            {term: self._smooth(self._count[category].get(term, 0), category)
+                             for term, _ in iter(self._vocabulary)}
+                            for category, corpus in training_set.items()}
 
     def _smooth(self, frequency: int, category: str) -> float:
         """
