@@ -88,32 +88,32 @@ class SuffixArray:
         and only the "best" matches are yielded back to the client. Ties are resolved arbitrarily.
         """
 
-  # Default options apply unless specified.
-  options = options or self.Options()
+        # Default options apply unless specified.
+        options = options or self.Options()
 
-   # Search for the needle in the haystack, using built-in binary search. Define that the empty query matches
-   # nothing, not everything.
-   needle = self._analyzer.join(query or "")
-    if not needle:
-        return
-    where_start = bisect_left(self._suffixes, needle, key=self._get_suffix)
+        # Search for the needle in the haystack, using built-in binary search. Define that the empty query matches
+        # nothing, not everything.
+        needle = self._analyzer.join(query or "")
+        if not needle:
+            return
+        where_start = bisect_left(self._suffixes, needle, key=self._get_suffix)
 
-    # Helper predicate. Checks if the identified suffix starts with the needle. Since slicing implies copying,
-    # cap the length of the slice to the length of the needle. The starts-with relation then becomes the same
-    # as equality, which is quick to check.
-    def _is_match(i: int) -> bool:
-        j, offset = self._suffixes[i]
-        return self._haystack[j][1][offset:(offset + len(needle))] == needle
+        # Helper predicate. Checks if the identified suffix starts with the needle. Since slicing implies copying,
+        # cap the length of the slice to the length of the needle. The starts-with relation then becomes the same
+        # as equality, which is quick to check.
+        def _is_match(i: int) -> bool:
+            j, offset = self._suffixes[i]
+            return self._haystack[j][1][offset:(offset + len(needle))] == needle
 
-    # Suffixes sharing a prefix are consecutive in the suffix array. Scan ahead from the located index until
-    # we no longer get a match. We expect a low number of matches for typical queries, and we process all the
-    # matches below anyway. If we just wanted to count the number of matches without processing them, we
-    # could instead of a linear scan do another binary search to locate where the range ends.
-    matches = takewhile(_is_match, range(where_start, len(self._suffixes)))
+        # Suffixes sharing a prefix are consecutive in the suffix array. Scan ahead from the located index until
+        # we no longer get a match. We expect a low number of matches for typical queries, and we process all the
+        # matches below anyway. If we just wanted to count the number of matches without processing them, we
+        # could instead of a linear scan do another binary search to locate where the range ends.
+        matches = takewhile(_is_match, range(where_start, len(self._suffixes)))
 
-    # Deduplicate. A document in the haystack might contain multiple occurrences of the needle.
-    # Rank according to occurrence count, and emit in ranked order.
-    if matches:
-        pairs = (self._suffixes[i] for i in matches)
+        # Deduplicate. A document in the haystack might contain multiple occurrences of the needle.
+        # Rank according to occurrence count, and emit in ranked order.
+        if matches:
+            pairs = (self._suffixes[i] for i in matches)
         winners = Counter(i for i, _ in pairs).most_common(max(1, min(100, options.hit_count)))
         yield from (self.Result(self._corpus[self._haystack[index][0]], count) for index, count in winners)
