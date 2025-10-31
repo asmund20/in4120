@@ -56,9 +56,11 @@ class NaiveBayesClassifier:
         Estimates all prior probabilities (or, rather, log-probabilities) needed for
         the naive Bayes classifier.
         """
-        counts = {category: len(corpus) for category, corpus in training_set.items()}
+        counts = {category: len(corpus)
+                  for category, corpus in training_set.items()}
         NORMALIZATION_FACTOR = sum(counts.values())
-        probabilities = {category: docs_in_category / NORMALIZATION_FACTOR for category, docs_in_category in counts.items()}
+        probabilities = {category: docs_in_category /
+                         NORMALIZATION_FACTOR for category, docs_in_category in counts.items()}
         self._priors = {category: math.log(prob)
                         for category, prob in probabilities.items()}
 
@@ -86,7 +88,8 @@ class NaiveBayesClassifier:
                        for category, corpus in training_set.items()}
 
     def _compute_denominators(self, training_set: Dict[str, Corpus], fields: Iterable[str]) -> None:
-        self._denominators = {category: sum(terms.values()) + len(self._vocabulary) for category, terms in self._count.items()}
+        self._denominators = {category: sum(terms.values(
+        )) + len(self._vocabulary) for category, terms in self._count.items()}
 
     def _compute_posteriors(self, training_set: Dict[str, Corpus], fields: Iterable[str]) -> None:
         """
@@ -138,4 +141,9 @@ class NaiveBayesClassifier:
         are emitted back to the client via the supplied callback sorted according to the scores. The reported scores
         are log-probabilities, to minimize numerical underflow issues. Logarithms are base e.
         """
-        raise NotImplementedError("You need to implement this as part of the obligatory assignment.")
+        results = [self.Result(category=category, score=(self.get_prior(
+            category) + sum(self.get_posterior(category, term) for term in self._get_terms(buffer)))) for category in self._priors]
+
+        results.sort(key=lambda x: x.score, reverse=True)
+
+        return (result for result in results)
